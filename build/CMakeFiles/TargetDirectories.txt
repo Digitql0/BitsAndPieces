@@ -1,4 +1,0 @@
-/home/digitql/Projects/Active/BitsAndPieces/build/CMakeFiles/BitsAndPieces.dir
-/home/digitql/Projects/Active/BitsAndPieces/build/CMakeFiles/BitsAndPiecesApp.dir
-/home/digitql/Projects/Active/BitsAndPieces/build/CMakeFiles/edit_cache.dir
-/home/digitql/Projects/Active/BitsAndPieces/build/CMakeFiles/rebuild_cache.dir

@@ -1,2 +1,0 @@
-/usr/bin/ar qc libBitsAndPieces.a CMakeFiles/BitsAndPieces.dir/src/main.cpp.o
-/usr/bin/ranlib libBitsAndPieces.a
