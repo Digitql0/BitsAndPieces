@@ -1,0 +1,6 @@
+[submodule "external/MiniGL"]
+	path = external/MiniGL
+	url = https://github.com/Digitql0/MiniGL
+[submodule "external/MostlyForces"]
+	path = external/MostlyForces
+	url = https://github.com/Digitql0/MostlyForces
