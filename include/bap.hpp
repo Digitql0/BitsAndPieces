@@ -27,13 +27,30 @@ typedef struct {
     void* data = nullptr;
 } Script;
 
+typedef struct {
+    uint32_t id;
+    Vec2 position;
+    Vec2 velocity;
+    Vec2 acceleration;
+    Vec2 debugAcceleration;
+    bool hasPhysics;
+    bool hasCollision;
+    Vec2 gravity;
+    Vec3 color;
+    Shape shape;
+    Script script;
+} Entity;
+
 constexpr size_t MAX_ENTITIES = 10000;
 
 uint32_t getNextFreeID(const std::unordered_set<uint32_t>& set);
 
 uint32_t createEntity();
+bool createEntityFrom(Entity& entity);
 void destroyEntity(uint32_t id);
 void activateDebug(float scalar);
+void set_entity(uint32_t id, Entity entity);
+void get_entity(uint32_t id, Entity& entity);
 void set_script(uint32_t id, ScriptFunction f, void* data = nullptr);
 void set_shape(uint32_t id, Shape shape);
 void set_position(uint32_t id, Vec2 position);

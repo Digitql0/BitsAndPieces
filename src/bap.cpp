@@ -8,17 +8,9 @@
 #include "iostream"
 
 static bool debug = false;
-static uint32_t Entities = 0;
+static uint32_t currentEntities = 0;
 std::unordered_set<uint32_t> usedIDs;
-Vec2 Position[MAX_ENTITIES];
-Vec2 Velocity[MAX_ENTITIES];
-Vec2 Acceleration[MAX_ENTITIES];
-bool hasPhysics[MAX_ENTITIES];
-bool hasCollision[MAX_ENTITIES];
-Vec2 Gravity[MAX_ENTITIES];
-Vec3 Color[MAX_ENTITIES];
-Shape Shapes[MAX_ENTITIES];
-Script Scripts[MAX_ENTITIES];
+Entity entities[MAX_ENTITIES];
 static int debug_scalar = 1;
 
 uint32_t getNextFreeID(const std::unordered_set<uint32_t>& set) {
@@ -40,26 +32,44 @@ uint32_t getNextFreeID(const std::unordered_set<uint32_t>& set) {
 }
 
 uint32_t createEntity() {
-  if (Entities < MAX_ENTITIES) {
+  if (currentEntities < MAX_ENTITIES) {
     uint32_t id = getNextFreeID(usedIDs);
-    Position[id] = getZeroVec2();
-    Velocity[id] = getZeroVec2();
-    Acceleration[id] = getZeroVec2();
-    hasPhysics[id] = false;
-    Gravity[id] = getZeroVec2();
-    Color[id] = getZeroVec3();
-    Shapes[id] = (Shape){None};
+
+    Entity new_entity;
+    new_entity.position = getZeroVec2();
+    new_entity.velocity = getZeroVec2();
+    new_entity.acceleration = getZeroVec2();
+    new_entity.hasPhysics = false;
+    new_entity.gravity = getZeroVec2();
+    new_entity.color = getZeroVec3();
+    new_entity.shape = (Shape){None};
+    entities[id] = new_entity;
+
     usedIDs.insert(id);
-    Entities++;
+    currentEntities++;
     return id;
   }
   return MAX_ENTITIES - 1;
 }
 
+bool createEntityFrom(Entity& entity) {
+  if (currentEntities < MAX_ENTITIES) {
+    uint32_t id = getNextFreeID(usedIDs);
+
+    entities[id] = entity;
+    entities[id].id = id;
+
+    usedIDs.insert(id);
+    currentEntities++;
+    return true;
+  }
+  return false;
+}
+
 void destroyEntity(uint32_t id) {
   if (usedIDs.find(id) != usedIDs.end()) {
     usedIDs.erase(id);
-    Entities--;
+    currentEntities--;
   }
 }
 
@@ -68,77 +78,89 @@ void activateDebug(float scalar) {
   debug_scalar = scalar;
 }
 
+void set_entity(uint32_t id, Entity entity) {
+  if (id < MAX_ENTITIES) {
+    entities[id] = entity;
+  }
+}
+
+void get_entity(uint32_t id, Entity& entity) {
+  if (id < MAX_ENTITIES) {
+    entity = entities[id];
+  }
+}
+
 void set_script(uint32_t id, ScriptFunction f, void* data) {
   if (id < MAX_ENTITIES) {
-    Scripts[id].func = f;
-    Scripts[id].data = data;
+    entities[id].script.func = f;
+    entities[id].script.data = data;
   }
 }
 
 void set_shape(uint32_t id, Shape shape) {
   if (id < MAX_ENTITIES) {
-    Shapes[id] = shape;
+    entities[id].shape = shape;
   }
 }
 
 void set_position(uint32_t id, Vec2 position) {
   if (id < MAX_ENTITIES) {
-    Position[id] = position;
+    entities[id].position = position;
   }
 }
 
 void set_velocity(uint32_t id, Vec2 force) {
   if (id < MAX_ENTITIES) {
-    Velocity[id] = force;
+    entities[id].velocity = force;
   }
 }
 
 void set_color(uint32_t id, Vec3 color) {
   if (id < MAX_ENTITIES) {
-    Color[id] = color;
+    entities[id].color = color;
   }
 }
 
 void add_physics(uint32_t id) {
   if (id < MAX_ENTITIES) {
-    hasPhysics[id] = true;
+    entities[id].hasPhysics = true;
   }
 }
 
 void remove_physics(uint32_t id) {
   if (id < MAX_ENTITIES) {
-    hasPhysics[id] = false;
+    entities[id].hasPhysics = false;
   }
 }
 
 void add_collision(uint32_t id) {
   if (id < MAX_ENTITIES) {
-    hasCollision[id] = true;
+    entities[id].hasCollision = true;
   }
 }
 
 void remove_collision(uint32_t id) {
   if (id < MAX_ENTITIES) {
-    hasCollision[id] = false;
+    entities[id].hasCollision = false;
   }
 }
 
 void set_gravity(uint32_t id, Vec2 force) {
   if (id < MAX_ENTITIES) {
-    Gravity[id] = force;
+    entities[id].gravity = force;
   }
 }
 
 void apply_force(uint32_t id, Vec2 force) {
   if (id < MAX_ENTITIES) {
-    Acceleration[id] =
-        getAddedVec(Acceleration[id], force);  // IDEA: force * mass ?
+    entities[id].acceleration =
+        getAddedVec(entities[id].acceleration, force);  // IDEA: force * mass ?
   }
 }
 
 void get_shape(uint32_t id, Shape& s) {
   if (id < MAX_ENTITIES) {
-    s = Shapes[id];
+    s = entities[id].shape;
   }
 }
 
@@ -152,8 +174,8 @@ void ecs_update_scripts() {
   for (int i = 0; i < MAX_ENTITIES; i++) {
     auto id = i;
     if (usedIDs.find(id) != usedIDs.end()) {
-      if (Scripts[id].func) {
-        Scripts[id].func(id, Scripts[id].data);
+      if (entities[id].script.func) {
+        entities[id].script.func(id, entities[id].script.data);
       }
     }
   }
@@ -163,11 +185,14 @@ void ecs_update_physics() {
   for (int i = 0; i < MAX_ENTITIES; i++) {
     auto id = i;
     if (usedIDs.find(id) != usedIDs.end()) {
-      if (hasPhysics[id]) {
-        Acceleration[id] = getAddedVec(Acceleration[id], Gravity[id]);
-        Velocity[id] = getAddedVec(Velocity[id], Acceleration[id]);
+      if (entities[id].hasPhysics) {
+        entities[id].acceleration =
+            getAddedVec(entities[id].acceleration, entities[id].gravity);
+        entities[id].velocity =
+            getAddedVec(entities[id].velocity, entities[id].acceleration);
       }
-      Position[id] = getAddedVec(Velocity[id], Position[id]);
+      entities[id].position =
+          getAddedVec(entities[id].velocity, entities[id].position);
     }
   }
 }
@@ -180,7 +205,7 @@ void ecs_check_collisions() {
         auto second = j;
         if (usedIDs.find(second) != usedIDs.end()) {
           // Two Objects chosen
-          if (hasCollision[first] && hasCollision[second]) {
+          if (entities[first].hasCollision && entities[second].hasCollision) {
             ecs_collision(first, second);
           }
         }
@@ -190,11 +215,11 @@ void ecs_check_collisions() {
 }
 
 void ecs_collision(uint32_t first, uint32_t second) {
-  shapes first_shape = Shapes[first].shape;
-  shapes second_shape = Shapes[second].shape;
+  shapes first_shape = entities[first].shape.shape;
+  shapes second_shape = entities[second].shape.shape;
 
-  Vec2 first_position = Position[first];
-  Vec2 second_position = Position[second];
+  Vec2 first_position = entities[first].position;
+  Vec2 second_position = entities[second].position;
 
   bool rvr = first_shape == rectangle && second_shape == rectangle;
   bool rvc = (first_shape == rectangle && second_shape == circle) ||
@@ -202,20 +227,21 @@ void ecs_collision(uint32_t first, uint32_t second) {
   bool cvc = first_shape == circle && second_shape == circle;
 
   if (cvc) {
-    Circle c1 =
-        (Circle){first_position.x, first_position.y, Shapes[first].circle.r};
-    Circle c2 =
-        (Circle){second_position.x, second_position.y, Shapes[second].circle.r};
-    Vec2 v1 = Velocity[first];
-    Vec2 v2 = Velocity[second];
+    Circle c1 = (Circle){first_position.x, first_position.y,
+                         entities[first].shape.circle.r};
+    Circle c2 = (Circle){second_position.x, second_position.y,
+                         entities[second].shape.circle.r};
+    Vec2 v1 = entities[first].velocity;
+    Vec2 v2 = entities[second].velocity;
 
     if (CheckCollisionCircles(c1, c2)) {
-      ResponseCollisionCircles(c1, c2, Velocity[first], Velocity[second]);
-      if (!hasPhysics[first]) {
-        Velocity[first] = v1;
+      ResponseCollisionCircles(c1, c2, entities[first].velocity,
+                               entities[second].velocity);
+      if (!entities[first].hasPhysics) {
+        entities[first].velocity = v1;
       }
-      if (!hasPhysics[second]) {
-        Velocity[second] = v2;
+      if (!entities[second].hasPhysics) {
+        entities[second].velocity = v2;
       }
     }
   }
@@ -227,22 +253,24 @@ void ecs_render() {
     if (usedIDs.find(id) != usedIDs.end()) {
       auto x1 = 0;
       auto y1 = 0;
-      switch (Shapes[id].shape) {
+      switch (entities[id].shape.shape) {
         case rectangle:
-          drawRectangle(Position[id].x, Position[id].y, Shapes[id].rectangle.w,
-                        Shapes[id].rectangle.h, Color[id].x, Color[id].y,
-                        Color[id].z);
+          drawRectangle(entities[id].position.x, entities[id].position.y,
+                        entities[id].shape.rectangle.w,
+                        entities[id].shape.rectangle.h, entities[id].color.x,
+                        entities[id].color.y, entities[id].color.z);
           if (debug) {
-            x1 = Position[id].x + Shapes[id].rectangle.w / 2;
-            y1 = Position[id].y + Shapes[id].rectangle.h / 2;
+            x1 = entities[id].position.x + entities[id].shape.rectangle.w / 2;
+            y1 = entities[id].position.y + entities[id].shape.rectangle.h / 2;
           }
           break;
         case circle:
-          drawCircle(Position[id].x, Position[id].y, Shapes[id].circle.r,
-                     Color[id].x, Color[id].y, Color[id].z);
+          drawCircle(entities[id].position.x, entities[id].position.y,
+                     entities[id].shape.circle.r, entities[id].color.x,
+                     entities[id].color.y, entities[id].color.z);
           if (debug) {
-            x1 = Position[id].x;
-            y1 = Position[id].y;
+            x1 = entities[id].position.x;
+            y1 = entities[id].position.y;
           }
           break;
         case None:
@@ -250,18 +278,21 @@ void ecs_render() {
       }
 
       if (debug) {
-        auto x2 = x1 + Velocity[id].x * debug_scalar;
-        auto y2 = y1 + Velocity[id].y * debug_scalar;
-        drawLine(x1, y1, x2, y2, Color[id].x, Color[id].y, Color[id].z);
-        x2 = x1 + Acceleration[id].x * debug_scalar;
-        y2 = y1 + Acceleration[id].y * debug_scalar;
-        drawLine(x1, y1, x2, y2, Color[id].x, Color[id].y, Color[id].z);
-        x2 = x1 + Gravity[id].x * debug_scalar;
-        y2 = y1 + Gravity[id].y * debug_scalar;
-        drawLine(x1, y1, x2, y2, Color[id].x, Color[id].y, Color[id].z);
+        auto x2 = x1 + entities[id].velocity.x * debug_scalar;
+        auto y2 = y1 + entities[id].velocity.y * debug_scalar;
+        drawLine(x1, y1, x2, y2, entities[id].color.x, entities[id].color.y,
+                 entities[id].color.z);
+        x2 = x1 + entities[id].acceleration.x * debug_scalar;
+        y2 = y1 + entities[id].acceleration.y * debug_scalar;
+        drawLine(x1, y1, x2, y2, entities[id].color.x, entities[id].color.y,
+                 entities[id].color.z);
+        x2 = x1 + entities[id].gravity.x * debug_scalar;
+        y2 = y1 + entities[id].gravity.y * debug_scalar;
+        drawLine(x1, y1, x2, y2, entities[id].color.x, entities[id].color.y,
+                 entities[id].color.z);
         std::cout << id << std::endl;
       }
-      Acceleration[id] = getZeroVec2();
+      entities[id].acceleration = getZeroVec2();
     }
   }
 }
