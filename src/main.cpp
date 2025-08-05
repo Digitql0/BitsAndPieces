@@ -2,7 +2,7 @@
 #include "bap.hpp"
 
 int main() {
-  MakeWindow(800, 600, "MostlyForces ECS Demo - Circles Only");
+  MGL_makeWindow(800, 600, "MostlyForces ECS Demo - Circles Only");
 
   // Entity 1: Player circle, moves right with mild gravity
   Entity Player;
@@ -42,16 +42,16 @@ int main() {
   // Enable debug output for entity IDs
   activateDebug(20);
 
-  while (!WindowShouldClose()) {
-    BeginDrawing();
-    ClearBackground(20, 20, 20);
+  while (!MGL_windowShouldClose()) {
+    MGL_beginDrawing();
+    MGL_clearBackground(20, 20, 20);
 
     ecs_update();
     ecs_render();
 
-    EndDrawing();
+    MGL_endDrawing();
   }
 
-  CloseWindow();
+  MGL_closeWindow();
   return 0;
 }

@@ -36,12 +36,12 @@ uint32_t createEntity() {
     uint32_t id = getNextFreeID(usedIDs);
 
     Entity new_entity;
-    new_entity.position = getZeroVec2();
-    new_entity.velocity = getZeroVec2();
-    new_entity.acceleration = getZeroVec2();
+    new_entity.position = MF_getZeroVec2();
+    new_entity.velocity = MF_getZeroVec2();
+    new_entity.acceleration = MF_getZeroVec2();
     new_entity.hasPhysics = false;
-    new_entity.gravity = getZeroVec2();
-    new_entity.color = getZeroVec3();
+    new_entity.gravity = MF_getZeroVec2();
+    new_entity.color = MF_getZeroVec3();
     new_entity.shape = (Shape){None};
     entities[id] = new_entity;
 
@@ -103,19 +103,19 @@ void set_shape(uint32_t id, Shape shape) {
   }
 }
 
-void set_position(uint32_t id, Vec2 position) {
+void set_position(uint32_t id, MF_vec2 position) {
   if (id < MAX_ENTITIES) {
     entities[id].position = position;
   }
 }
 
-void set_velocity(uint32_t id, Vec2 force) {
+void set_velocity(uint32_t id, MF_vec2 force) {
   if (id < MAX_ENTITIES) {
     entities[id].velocity = force;
   }
 }
 
-void set_color(uint32_t id, Vec3 color) {
+void set_color(uint32_t id, MF_vec3 color) {
   if (id < MAX_ENTITIES) {
     entities[id].color = color;
   }
@@ -145,16 +145,16 @@ void remove_collision(uint32_t id) {
   }
 }
 
-void set_gravity(uint32_t id, Vec2 force) {
+void set_gravity(uint32_t id, MF_vec2 force) {
   if (id < MAX_ENTITIES) {
     entities[id].gravity = force;
   }
 }
 
-void apply_force(uint32_t id, Vec2 force) {
+void apply_force(uint32_t id, MF_vec2 force) {
   if (id < MAX_ENTITIES) {
-    entities[id].acceleration =
-        getAddedVec(entities[id].acceleration, force);  // IDEA: force * mass ?
+    entities[id].acceleration = MF_getAddedVec(entities[id].acceleration,
+                                               force);  // IDEA: force * mass ?
   }
 }
 
@@ -187,12 +187,12 @@ void ecs_update_physics() {
     if (usedIDs.find(id) != usedIDs.end()) {
       if (entities[id].hasPhysics) {
         entities[id].acceleration =
-            getAddedVec(entities[id].acceleration, entities[id].gravity);
+            MF_getAddedVec(entities[id].acceleration, entities[id].gravity);
         entities[id].velocity =
-            getAddedVec(entities[id].velocity, entities[id].acceleration);
+            MF_getAddedVec(entities[id].velocity, entities[id].acceleration);
       }
       entities[id].position =
-          getAddedVec(entities[id].velocity, entities[id].position);
+          MF_getAddedVec(entities[id].velocity, entities[id].position);
     }
   }
 }
@@ -218,8 +218,8 @@ void ecs_collision(uint32_t first, uint32_t second) {
   shapes first_shape = entities[first].shape.shape;
   shapes second_shape = entities[second].shape.shape;
 
-  Vec2 first_position = entities[first].position;
-  Vec2 second_position = entities[second].position;
+  MF_vec2 first_position = entities[first].position;
+  MF_vec2 second_position = entities[second].position;
 
   bool rvr = first_shape == rectangle && second_shape == rectangle;
   bool rvc = (first_shape == rectangle && second_shape == circle) ||
@@ -227,16 +227,16 @@ void ecs_collision(uint32_t first, uint32_t second) {
   bool cvc = first_shape == circle && second_shape == circle;
 
   if (cvc) {
-    Circle c1 = (Circle){first_position.x, first_position.y,
-                         entities[first].shape.circle.r};
-    Circle c2 = (Circle){second_position.x, second_position.y,
-                         entities[second].shape.circle.r};
-    Vec2 v1 = entities[first].velocity;
-    Vec2 v2 = entities[second].velocity;
+    MF_circle c1 = (MF_circle){first_position.x, first_position.y,
+                               entities[first].shape.circle.r};
+    MF_circle c2 = (MF_circle){second_position.x, second_position.y,
+                               entities[second].shape.circle.r};
+    MF_vec2 v1 = entities[first].velocity;
+    MF_vec2 v2 = entities[second].velocity;
 
-    if (CheckCollisionCircles(c1, c2)) {
-      ResponseCollisionCircles(c1, c2, entities[first].velocity,
-                               entities[second].velocity);
+    if (MF_checkCollisionCircles(c1, c2)) {
+      MF_responseCollisionCircles(c1, c2, entities[first].velocity,
+                                  entities[second].velocity);
       if (!entities[first].hasPhysics) {
         entities[first].velocity = v1;
       }
@@ -255,19 +255,19 @@ void ecs_render() {
       auto y1 = 0;
       switch (entities[id].shape.shape) {
         case rectangle:
-          drawRectangle(entities[id].position.x, entities[id].position.y,
-                        entities[id].shape.rectangle.w,
-                        entities[id].shape.rectangle.h, entities[id].color.x,
-                        entities[id].color.y, entities[id].color.z);
+          MGL_drawRectangle(
+              entities[id].position.x, entities[id].position.y,
+              entities[id].shape.rectangle.w, entities[id].shape.rectangle.h,
+              entities[id].color.x, entities[id].color.y, entities[id].color.z);
           if (debug) {
             x1 = entities[id].position.x + entities[id].shape.rectangle.w / 2;
             y1 = entities[id].position.y + entities[id].shape.rectangle.h / 2;
           }
           break;
         case circle:
-          drawCircle(entities[id].position.x, entities[id].position.y,
-                     entities[id].shape.circle.r, entities[id].color.x,
-                     entities[id].color.y, entities[id].color.z);
+          MGL_drawCircle(entities[id].position.x, entities[id].position.y,
+                         entities[id].shape.circle.r, entities[id].color.x,
+                         entities[id].color.y, entities[id].color.z);
           if (debug) {
             x1 = entities[id].position.x;
             y1 = entities[id].position.y;
@@ -280,19 +280,19 @@ void ecs_render() {
       if (debug) {
         auto x2 = x1 + entities[id].velocity.x * debug_scalar;
         auto y2 = y1 + entities[id].velocity.y * debug_scalar;
-        drawLine(x1, y1, x2, y2, entities[id].color.x, entities[id].color.y,
-                 entities[id].color.z);
+        MGL_drawLine(x1, y1, x2, y2, entities[id].color.x, entities[id].color.y,
+                     entities[id].color.z);
         x2 = x1 + entities[id].acceleration.x * debug_scalar;
         y2 = y1 + entities[id].acceleration.y * debug_scalar;
-        drawLine(x1, y1, x2, y2, entities[id].color.x, entities[id].color.y,
-                 entities[id].color.z);
+        MGL_drawLine(x1, y1, x2, y2, entities[id].color.x, entities[id].color.y,
+                     entities[id].color.z);
         x2 = x1 + entities[id].gravity.x * debug_scalar;
         y2 = y1 + entities[id].gravity.y * debug_scalar;
-        drawLine(x1, y1, x2, y2, entities[id].color.x, entities[id].color.y,
-                 entities[id].color.z);
+        MGL_drawLine(x1, y1, x2, y2, entities[id].color.x, entities[id].color.y,
+                     entities[id].color.z);
         std::cout << id << std::endl;
       }
-      entities[id].acceleration = getZeroVec2();
+      entities[id].acceleration = MF_getZeroVec2();
     }
   }
 }
