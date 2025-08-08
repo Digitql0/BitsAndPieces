@@ -12,7 +12,7 @@ int main() {
   Player.hasCollision = true;
   Player.hasPhysics = true;
   Player.gravity = {0.0f, 0.3f};
-  Player.shape.shape = circle;
+  Player.shape.geometry = circle;
   Player.shape.circle.r = 25;
   createEntityFrom(Player);
 
@@ -23,7 +23,7 @@ int main() {
   second.hasCollision = true;
   second.hasPhysics = true;
   second.gravity = {0.0f, 0.8f};
-  second.shape.shape = circle;
+  second.shape.geometry = circle;
   second.shape.circle.r = 30;
   createEntityFrom(second);
 
@@ -35,7 +35,7 @@ int main() {
   third.hasCollision = true;
   third.hasPhysics = false;
   third.gravity = {0.0f, 0.0f};
-  third.shape.shape = circle;
+  third.shape.geometry = circle;
   third.shape.circle.r = 20;
   createEntityFrom(third);
 
