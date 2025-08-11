@@ -3,7 +3,7 @@
 
 #include <cstdint>
 #include "utilities.hpp"
-#include "MiniGL.hpp"
+#include "MiniGL.h"
 
 void ecs_update();
 void ecs_render();

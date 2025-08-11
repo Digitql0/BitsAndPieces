@@ -1,4 +1,4 @@
-#include "MiniGL.hpp"
+#include "MiniGL.h"
 #include "bap.hpp"
 
 int main() {
